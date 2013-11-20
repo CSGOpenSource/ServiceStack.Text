@@ -1,20 +1,9 @@
-//
-// https://github.com/ServiceStack/ServiceStack.Text
-// ServiceStack.Text: .NET C# POCO JSON, JSV and CSV Text Serializers.
-//
-// Authors:
-//   Demis Bellot (demis.bellot@gmail.com)
-//
-// Copyright 2012 ServiceStack Ltd.
-//
-// Licensed under the same terms of ServiceStack: new BSD license.
-//
+//Copyright (c) Service Stack LLC. All Rights Reserved.
+//License: https://raw.github.com/ServiceStack/ServiceStack/master/license.txt
 
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Threading;
 using ServiceStack.Text.Common;
 
@@ -39,7 +28,7 @@ namespace ServiceStack.Text.Json
                 Interlocked.CompareExchange(ref WriteFnCache, newCache, snapshot), snapshot));
         }
 
-		public static WriteObjectDelegate GetWriteFn(Type type)
+	    internal static WriteObjectDelegate GetWriteFn(Type type)
 		{
 			try
 			{
@@ -72,7 +61,7 @@ namespace ServiceStack.Text.Json
 
 		private static Dictionary<Type, TypeInfo> JsonTypeInfoCache = new Dictionary<Type, TypeInfo>();
 
-		public static TypeInfo GetTypeInfo(Type type)
+	    internal static TypeInfo GetTypeInfo(Type type)
 		{
 			try
 			{
@@ -103,7 +92,7 @@ namespace ServiceStack.Text.Json
 			}
 		}
 
-		public static void WriteLateBoundObject(TextWriter writer, object value)
+	    internal static void WriteLateBoundObject(TextWriter writer, object value)
 		{
 			if (value == null)
 			{
@@ -111,18 +100,32 @@ namespace ServiceStack.Text.Json
 				return;
 			}
 
-			var type = value.GetType();
-			var writeFn = type == typeof(object)
-				? WriteType<object, JsonTypeSerializer>.WriteObjectType
-				: GetWriteFn(type);
+            try
+            {
+                if (++JsState.Depth > JsConfig.MaxDepth)
+                {
+                    Tracer.Instance.WriteError("Exceeded MaxDepth limit of {0} attempting to serialize {1}"
+                        .Fmt(JsConfig.MaxDepth, value.GetType().Name));
+                    return;
+                }
 
-			var prevState = JsState.IsWritingDynamic;
-			JsState.IsWritingDynamic = true;
-			writeFn(writer, value);
-			JsState.IsWritingDynamic = prevState;
-		}
+			    var type = value.GetType();
+			    var writeFn = type == typeof(object)
+				    ? WriteType<object, JsonTypeSerializer>.WriteObjectType
+				    : GetWriteFn(type);
 
-		public static WriteObjectDelegate GetValueTypeToStringMethod(Type type)
+			    var prevState = JsState.IsWritingDynamic;
+			    JsState.IsWritingDynamic = true;
+			    writeFn(writer, value);
+			    JsState.IsWritingDynamic = prevState;
+            }
+            finally
+            {
+                JsState.Depth--;
+            }
+        }
+
+	    internal static WriteObjectDelegate GetValueTypeToStringMethod(Type type)
 		{
 			return Instance.GetValueTypeToStringMethod(type);
 		}
@@ -130,8 +133,9 @@ namespace ServiceStack.Text.Json
 
 	internal class TypeInfo
 	{
-		internal bool EncodeMapKey;
-	}
+        internal bool EncodeMapKey;
+        internal bool IsNumeric;
+    }
 
 	/// <summary>
 	/// Implement the serializer using a more static approach
@@ -163,8 +167,10 @@ namespace ServiceStack.Text.Json
 
 		static JsonWriter()
 		{
+		    var isNumeric = typeof(T).IsNumericType();
 			TypeInfo = new TypeInfo {
-				EncodeMapKey = typeof(T) == typeof(bool) || typeof(T).IsNumericType()
+                EncodeMapKey = typeof(T) == typeof(bool) || isNumeric,
+                IsNumeric = isNumeric
 			};
 
             CacheFn = typeof(T) == typeof(object) 
@@ -172,13 +178,40 @@ namespace ServiceStack.Text.Json
                 : JsonWriter.Instance.GetWriteFn<T>();
 		}
 
-	    public static void WriteObject(TextWriter writer, object value)
-		{
+        public static void WriteObject(TextWriter writer, object value)
+        {
 #if MONOTOUCH
 			if (writer == null) return;
 #endif
-			CacheFn(writer, value);
-		}
-	}
+            TypeConfig<T>.AssertValidUsage();
+
+            try
+            {
+                if (++JsState.Depth > JsConfig.MaxDepth)
+                {
+                    Tracer.Instance.WriteError("Exceeded MaxDepth limit of {0} attempting to serialize {1}"
+                        .Fmt(JsConfig.MaxDepth, value.GetType().Name));
+                    return;
+                }
+
+                CacheFn(writer, value);
+            }
+            finally
+            {
+                JsState.Depth--;
+            }
+        }
+
+        public static void WriteRootObject(TextWriter writer, object value)
+        {
+#if MONOTOUCH
+			if (writer == null) return;
+#endif
+            TypeConfig<T>.AssertValidUsage();
+
+            JsState.Depth = 0;
+            CacheFn(writer, value);
+        }
+    }
 
 }

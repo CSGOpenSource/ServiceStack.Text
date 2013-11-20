@@ -2,11 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Globalization;
 using System.Runtime.Serialization;
-using System.Threading;
+using System.Xml;
 using NUnit.Framework;
-using ServiceStack.Common.Extensions;
 using ServiceStack.Text.Jsv;
 
 namespace ServiceStack.Text.Tests
@@ -100,7 +98,26 @@ namespace ServiceStack.Text.Tests
             {
                 if (ReferenceEquals(null, other)) return false;
                 if (ReferenceEquals(this, other)) return true;
-                return other.Id == Id && Equals(other.Urn, Urn) && other.UserId.Equals(UserId) && other.DateAdded.RoundToMs().Equals(DateAdded.RoundToMs()) && other.DateModified.RoundToMs().Equals(DateModified.RoundToMs()) && other.TargetUserId.Equals(TargetUserId) && other.ForwardedPostId.Equals(ForwardedPostId) && other.OriginUserId.Equals(OriginUserId) && Equals(other.OriginUserName, OriginUserName) && other.SourceUserId.Equals(SourceUserId) && Equals(other.SourceUserName, SourceUserName) && Equals(other.SubjectUrn, SubjectUrn) && Equals(other.ContentUrn, ContentUrn) && TrackUrns.EquivalentTo(other.TrackUrns) && Equals(other.Caption, Caption) && other.CaptionUserId.Equals(CaptionUserId) && Equals(other.CaptionSourceName, CaptionSourceName) && Equals(other.ForwardedPostUrn, ForwardedPostUrn) && Equals(other.PostType, PostType) && other.OnBehalfOfUserId.Equals(OnBehalfOfUserId);
+                return other.Id == Id
+                    && Equals(other.Urn, Urn) 
+                    && other.UserId.Equals(UserId) 
+                    && other.DateAdded.RoundToMs().Equals(DateAdded.RoundToMs()) 
+                    && other.DateModified.RoundToMs().Equals(DateModified.RoundToMs()) 
+                    && other.TargetUserId.Equals(TargetUserId) 
+                    && other.ForwardedPostId.Equals(ForwardedPostId) 
+                    && other.OriginUserId.Equals(OriginUserId) 
+                    && Equals(other.OriginUserName, OriginUserName)
+                    && other.SourceUserId.Equals(SourceUserId) 
+                    && Equals(other.SourceUserName, SourceUserName)
+                    && Equals(other.SubjectUrn, SubjectUrn) 
+                    && Equals(other.ContentUrn, ContentUrn) 
+                    && TrackUrns.EquivalentTo(other.TrackUrns) 
+                    && Equals(other.Caption, Caption)
+                    && other.CaptionUserId.Equals(CaptionUserId) 
+                    && Equals(other.CaptionSourceName, CaptionSourceName) 
+                    && Equals(other.ForwardedPostUrn, ForwardedPostUrn) 
+                    && Equals(other.PostType, PostType) 
+                    && other.OnBehalfOfUserId.Equals(OnBehalfOfUserId);
             }
 
             public override bool Equals(object obj)
@@ -334,6 +351,95 @@ namespace ServiceStack.Text.Tests
             Assert.That(dto.ToJsv(), Is.EqualTo("{Key:Value}"));
         }
 
+        [Test]
+        public void Can_exclude_properties_scoped() {
+            var dto = new Exclude {Id = 1, Key = "Value"};
+            using (var config = JsConfig.BeginScope()) {
+                config.ExcludePropertyReferences = new[] {"Exclude.Id"};
+                Assert.That(dto.ToJson(), Is.EqualTo("{\"Key\":\"Value\"}"));
+                Assert.That(dto.ToJsv(), Is.EqualTo("{Key:Value}"));
+            }
+        }
+        
+        public class IncludeExclude {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public Exclude Obj { get; set; }
+        }
+
+        [Test]
+        public void Can_include_nested_only() {
+            var dto = new IncludeExclude {
+                Id = 1234,
+                Name = "TEST",
+                Obj = new Exclude {
+                    Id = 1,
+                    Key = "Value"
+                }
+            };
+
+            using (var config = JsConfig.BeginScope()) {
+                config.ExcludePropertyReferences = new[] { "Exclude.Id", "IncludeExclude.Id", "IncludeExclude.Name" };
+                Assert.That(dto.ToJson(), Is.EqualTo("{\"Obj\":{\"Key\":\"Value\"}}"));
+                Assert.That(dto.ToJsv(), Is.EqualTo("{Obj:{Key:Value}}"));
+            }
+            Assert.That(JsConfig.ExcludePropertyReferences, Is.EqualTo(null));
+
+        }
+
+        [Test]
+        public void Exclude_all_nested()
+        {
+            var dto = new IncludeExclude
+            {
+                Id = 1234,
+                Name = "TEST",
+                Obj = new Exclude
+                {   
+                    Id = 1,
+                    Key = "Value"
+                }
+            };
+            
+            using (var config = JsConfig.BeginScope())
+            {
+                config.ExcludePropertyReferences = new[] { "Exclude.Id", "Exclude.Key" };
+                Assert.AreEqual(2, config.ExcludePropertyReferences.Length);
+
+                var actual = dto.ToJson();
+                Assert.That(actual, Is.EqualTo("{\"Id\":1234,\"Name\":\"TEST\",\"Obj\":{}}"));
+                Assert.That(dto.ToJsv(), Is.EqualTo("{Id:1234,Name:TEST,Obj:{}}"));
+            }
+        }
+
+        public class ExcludeList {
+            public int Id { get; set; }
+            public List<Exclude> Excludes { get; set; }
+        }
+
+        [Test]
+        public void Exclude_List_Scope() {
+            var dto = new ExcludeList {
+                Id = 1234,
+                Excludes = new List<Exclude>() {
+                    new Exclude {
+                        Id = 2345,
+                        Key = "Value"
+                    },
+                    new Exclude {
+                        Id = 3456,
+                        Key = "Value"
+                    }
+                }
+            };
+            using (var config = JsConfig.BeginScope())
+            {
+                config.ExcludePropertyReferences = new[] { "ExcludeList.Id", "Exclude.Id" };
+                Assert.That(dto.ToJson(), Is.EqualTo("{\"Excludes\":[{\"Key\":\"Value\"},{\"Key\":\"Value\"}]}"));
+                Assert.That(dto.ToJsv(), Is.EqualTo("{Excludes:[{Key:Value},{Key:Value}]}"));
+            }
+        }
+
         public class HasIndex
         {
             public int Id { get; set; }
@@ -526,6 +632,36 @@ namespace ServiceStack.Text.Tests
             Assert.That(json, Is.EqualTo("[\"Enum1\",\"Enum2\",\"Enum3\"]"));
         }
 
+        public class DictionaryEnumType
+        {
+            public Dictionary<EnumValues, Test> DictEnumType { get; set; }
+        }
+
+        [Test]
+        public void Can_Serialize_Dictionary_With_Enums()
+        {
+            Dictionary<EnumValues, Test> dictEnumType =
+                new Dictionary<EnumValues, Test> 
+                {
+                    {
+                        EnumValues.Enum1, new Test { Val = "A Value" }
+                    }
+                };
+
+            var item = new DictionaryEnumType
+            {
+                DictEnumType = dictEnumType
+            };
+            const string expected = "{\"DictEnumType\":{\"Enum1\":{\"Val\":\"A Value\"}}}";
+
+            var jsonItem = JsonSerializer.SerializeToString(item);
+            //Log(jsonItem);
+            Assert.That(jsonItem, Is.EqualTo(expected));
+
+            var deserializedItem = JsonSerializer.DeserializeFromString<DictionaryEnumType>(jsonItem);
+            Assert.That(deserializedItem, Is.TypeOf<DictionaryEnumType>());
+        }
+
         [Test]
         public void Can_Serialize_Array_of_chars()
         {
@@ -563,6 +699,16 @@ namespace ServiceStack.Text.Tests
         }
 
         [Test]
+        public void Can_deserialize_case_insensitive_names()
+        {
+            var dto = "{\"vALUE\":\"B\"}".FromJson<A>();
+            Assert.That(dto.Value, Is.EqualTo("B"));
+            
+            dto = "{vALUE:B}".FromJsv<A>();
+            Assert.That(dto.Value, Is.EqualTo("B"));
+        }
+
+        [Test]
         public void Deserialize_array_with_null_elements()
         {
             var json = "[{\"Value\": \"a\"},null,{\"Value\": \"b\"}]";
@@ -591,6 +737,26 @@ namespace ServiceStack.Text.Tests
             };
 
             var from = Serialize(dto, includeXml: false);
+            Assert.IsNotNull(from.Blah);
+            from.PrintDump();
+        }
+
+        public class BreakerCollection
+        {
+            public ICollection Blah { get; set; }
+        }
+
+        [Test]
+        public void Can_serialize_ICollection()
+        {
+            var dto = new BreakerCollection
+            {
+                Blah = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+            };
+            
+            var from = Serialize(dto, includeXml: false);
+            Assert.IsNotNull(from.Blah);
+            Assert.AreEqual(dto.Blah.Count, from.Blah.Count);
             from.PrintDump();
         }
     }

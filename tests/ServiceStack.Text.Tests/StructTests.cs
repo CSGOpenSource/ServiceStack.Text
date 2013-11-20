@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Globalization;
 using System.Linq;
+using System.Threading;
 using NUnit.Framework;
 using ServiceStack.Text.Common;
 
@@ -253,11 +256,63 @@ namespace ServiceStack.Text.Tests
             Assert.DoesNotThrow(() => ret = StaticParseMethod<DangerousText2>.Parse);
             Assert.IsNull(ret);
         }
+
+        [Explicit("Ensure this test has proven to work, before adding it to the test suite")]
+        [Test]
+        [TestCase("en")]
+        [TestCase("en-US")]
+        [TestCase("de-CH")]
+        [TestCase("de")]
+        public void test_rect_different_cultures(string culture)
+        {
+            var currentCulture = CultureInfo.GetCultureInfo(culture);
+            Thread.CurrentThread.CurrentCulture = currentCulture;
+            Thread.CurrentThread.CurrentUICulture = currentCulture;
+            var s = new JsonSerializer<Rect>();
+            var r = new Rect(23, 34, 1024, 768);
+            var interim = s.SerializeToString(r);
+            var r2 = s.DeserializeFromString(interim);
+            Assert.AreEqual(r, r2);
+        }
     }
 
     public struct UserStruct
     {
         public int Id { get; set; }
         public string Name { get; set; }
+    }
+
+    public struct Rect : IFormattable
+    {
+        double x;
+        double y;
+        double width;
+        double height;
+
+        public Rect(double x, double y, double width, double height)
+        {
+            if (width < 0 || height < 0)
+                throw new ArgumentException("width and height must be non-negative.");
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+        }
+
+        public string ToString(string format, IFormatProvider formatProvider)
+        {
+            return "{0},{1},{2},{3}".Fmt(x, y, width, height);
+        }
+
+        public static Rect Parse(string input)
+        {
+            var parts = input.Split(',');
+            return new Rect(
+                double.Parse(parts[0]),
+                double.Parse(parts[1]),
+                double.Parse(parts[2]),
+                double.Parse(parts[3])
+            );
+        }
     }
 }

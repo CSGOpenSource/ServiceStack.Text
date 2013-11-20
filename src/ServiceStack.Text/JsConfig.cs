@@ -31,6 +31,7 @@ namespace ServiceStack.Text
         public static JsConfigScope With(
             bool? convertObjectTypesIntoStringDictionary = null,
             bool? tryToParsePrimitiveTypeValues = null,
+			bool? tryToParseNumericType = null,
             bool? includeNullValues = null,
             bool? excludeTypeInfo = null,
             bool? includeTypeInfo = null,
@@ -45,13 +46,18 @@ namespace ServiceStack.Text
             Func<string, Type> typeFinder = null,
 			bool? treatEnumAsInteger = null,
             bool? alwaysUseUtc = null,
+            bool? assumeUtc = null,
+            bool? appendUtcOffset = null,
             bool? escapeUnicode = null,
             bool? includePublicFields = null,
-            EmptyCtorFactoryDelegate modelFactory = null)
+            int? maxDepth = null,
+            EmptyCtorFactoryDelegate modelFactory = null,
+            string[] excludePropertyReferences = null)
         {
             return new JsConfigScope {
                 ConvertObjectTypesIntoStringDictionary = convertObjectTypesIntoStringDictionary ?? sConvertObjectTypesIntoStringDictionary,
                 TryToParsePrimitiveTypeValues = tryToParsePrimitiveTypeValues ?? sTryToParsePrimitiveTypeValues,
+                TryToParseNumericType = tryToParseNumericType ?? sTryToParseNumericType,
                 IncludeNullValues = includeNullValues ?? sIncludeNullValues,
                 ExcludeTypeInfo = excludeTypeInfo ?? sExcludeTypeInfo,
                 IncludeTypeInfo = includeTypeInfo ?? sIncludeTypeInfo,
@@ -66,9 +72,13 @@ namespace ServiceStack.Text
                 TypeFinder = typeFinder ?? sTypeFinder,
                 TreatEnumAsInteger = treatEnumAsInteger ?? sTreatEnumAsInteger,
                 AlwaysUseUtc = alwaysUseUtc ?? sAlwaysUseUtc,
+                AssumeUtc = assumeUtc ?? sAssumeUtc,
+                AppendUtcOffset = appendUtcOffset ?? sAppendUtcOffset,
                 EscapeUnicode = escapeUnicode ?? sEscapeUnicode,
                 IncludePublicFields = includePublicFields ?? sIncludePublicFields,
+                MaxDepth = maxDepth ?? sMaxDepth,
                 ModelFactory = modelFactory ?? ModelFactory,
+                ExcludePropertyReferences = excludePropertyReferences ?? sExcludePropertyReferences
             };
         }
 
@@ -101,6 +111,21 @@ namespace ServiceStack.Text
                 if (!sTryToParsePrimitiveTypeValues.HasValue) sTryToParsePrimitiveTypeValues = value;
             }
         }
+
+		private static bool? sTryToParseNumericType;
+		public static bool TryToParseNumericType
+		{
+			get
+			{
+				return (JsConfigScope.Current != null ? JsConfigScope.Current.TryToParseNumericType : null)
+					?? sTryToParseNumericType
+					?? false;
+			}
+			set
+			{
+				if (!sTryToParseNumericType.HasValue) sTryToParseNumericType = value;
+			}
+		}
 
         private static bool? sIncludeNullValues;
         public static bool IncludeNullValues
@@ -381,6 +406,45 @@ namespace ServiceStack.Text
         }
 
         /// <summary>
+        /// Gets or sets a value indicating if the framework should always assume <see cref="DateTime"/> is in UTC format if Kind is Unspecified. 
+        /// </summary>
+        private static bool? sAssumeUtc;
+        public static bool AssumeUtc
+        {
+            // obeying the use of ThreadStatic, but allowing for setting JsConfig once as is the normal case
+            get
+            {
+                return (JsConfigScope.Current != null ? JsConfigScope.Current.AssumeUtc : null)
+                    ?? sAssumeUtc
+                    ?? false;
+            }
+            set
+            {
+                if (!sAssumeUtc.HasValue) sAssumeUtc = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether we should append the Utc offset when we serialize Utc dates. Defaults to no.
+        /// Only supported for when the JsConfig.DateHandler == JsonDateHandler.TimestampOffset
+        /// </summary>
+        private static bool? sAppendUtcOffset;
+        public static bool? AppendUtcOffset
+        {
+            // obeying the use of ThreadStatic, but allowing for setting JsConfig once as is the normal case
+            get
+            {
+                return (JsConfigScope.Current != null ? JsConfigScope.Current.AppendUtcOffset : null)
+                    ?? sAppendUtcOffset
+                    ?? null;
+            }
+            set
+            {
+                if (sAppendUtcOffset == null) sAppendUtcOffset = value;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets a value indicating if unicode symbols should be serialized as "\uXXXX".
         /// </summary>
         private static bool? sEscapeUnicode;
@@ -446,6 +510,24 @@ namespace ServiceStack.Text
         }
 
         /// <summary>
+        /// Sets the maximum depth to avoid circular dependencies
+        /// </summary>
+        private static int? sMaxDepth;
+        public static int MaxDepth
+        {
+            get
+            {
+                return (JsConfigScope.Current != null ? JsConfigScope.Current.MaxDepth : null)
+                    ?? sMaxDepth
+                    ?? int.MaxValue;
+            }
+            set
+            {
+                if (!sMaxDepth.HasValue) sMaxDepth = value;
+            }
+        }
+
+        /// <summary>
         /// Set this to enable your own type construction provider.
         /// This is helpful for integration with IoC containers where you need to call the container constructor.
         /// Return null if you don't know how to construct the type and the parameterless constructor will be used.
@@ -465,15 +547,48 @@ namespace ServiceStack.Text
             }
         }
 
+        private static string[] sExcludePropertyReferences;
+        public static string[] ExcludePropertyReferences
+        {
+            get
+            {
+                return (JsConfigScope.Current != null ? JsConfigScope.Current.ExcludePropertyReferences : null)
+                       ?? sExcludePropertyReferences;
+            }
+            set
+            {
+                if (sExcludePropertyReferences != null) sExcludePropertyReferences = value;
+            }
+        }
+
+        private static HashSet<Type> sExcludeTypes;
+        public static HashSet<Type> ExcludeTypes
+        {
+            get
+            {
+                return (JsConfigScope.Current != null ? JsConfigScope.Current.ExcludeTypes : null)
+                       ?? sExcludeTypes;
+            }
+            set
+            {
+                if (sExcludePropertyReferences != null) sExcludeTypes = value;
+            }
+        }
+
         public static void Reset()
         {
             foreach (var rawSerializeType in HasSerializeFn.ToArray())
             {
                 Reset(rawSerializeType);
             }
+            foreach (var uniqueType in __uniqueTypes.ToArray())
+            {
+                Reset(uniqueType);
+            }
 
             sModelFactory = ReflectionExtensions.GetConstructorMethodToCache;
             sTryToParsePrimitiveTypeValues = null;
+		    sTryToParseNumericType = null;
             sConvertObjectTypesIntoStringDictionary = null;
             sIncludeNullValues = null;
             sExcludeTypeInfo = null;
@@ -490,22 +605,34 @@ namespace ServiceStack.Text
             sTypeFinder = null;
 			sTreatEnumAsInteger = null;
             sAlwaysUseUtc = null;
+            sAssumeUtc = null;
+            sAppendUtcOffset = null;
             sEscapeUnicode = null;
             sIncludePublicFields = null;
             HasSerializeFn = new HashSet<Type>();
             TreatValueAsRefTypes = new HashSet<Type> { typeof(KeyValuePair<,>) };
             PropertyConvention = JsonPropertyConvention.ExactMatch;
+            sExcludePropertyReferences = null;
+            sExcludeTypes = new HashSet<Type> { typeof(Stream) };
+            __uniqueTypes = new HashSet<Type>();
+	        sMaxDepth = 50;
         }
 
-        public static void Reset(Type cachesForType)
+        static void Reset(Type cachesForType)
         {
             typeof(JsConfig<>).MakeGenericType(new[] { cachesForType }).InvokeReset();
+            typeof(TypeConfig<>).MakeGenericType(new[] { cachesForType }).InvokeReset();
         }
 
         internal static void InvokeReset(this Type genericType)
         {
+#if NETFX_CORE
+            MethodInfo methodInfo = genericType.GetTypeInfo().GetType().GetMethodInfo("Reset");
+            methodInfo.Invoke(null, null);
+#else
             var methodInfo = genericType.GetMethod("Reset", BindingFlags.Static | BindingFlags.Public);
             methodInfo.Invoke(null, null);
+#endif
         }
 
 #if MONOTOUCH
@@ -724,6 +851,7 @@ namespace ServiceStack.Text
 
 #endif
 
+        internal static HashSet<Type> __uniqueTypes = new HashSet<Type>(); 
     }
 
 #if MONOTOUCH
@@ -918,7 +1046,8 @@ namespace ServiceStack.Text
     {
         TimestampOffset,
         DCJSCompatible,
-        ISO8601
+        ISO8601,
+        RFC1123
     }
 
     public enum JsonTimeSpanHandler

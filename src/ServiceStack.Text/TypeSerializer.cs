@@ -5,9 +5,9 @@
 // Authors:
 //   Demis Bellot (demis.bellot@gmail.com)
 //
-// Copyright 2012 ServiceStack Ltd.
+// Copyright 2012 Service Stack LLC. All Rights Reserved.
 //
-// Licensed under the same terms of ServiceStack: new BSD license.
+// Licensed under the same terms of ServiceStack.
 //
 
 using System;
@@ -78,7 +78,7 @@ namespace ServiceStack.Text
 
 		public static string SerializeToString<T>(T value)
 		{
-			if (value == null) return null;
+			if (value == null || value is Delegate) return null;
 			if (typeof(T) == typeof(string)) return value as string;
             if (typeof(T) == typeof(object) || typeof(T).IsAbstract() || typeof(T).IsInterface())
             {
@@ -91,7 +91,7 @@ namespace ServiceStack.Text
 			var sb = new StringBuilder();
 			using (var writer = new StringWriter(sb, CultureInfo.InvariantCulture))
 			{
-				JsvWriter<T>.WriteObject(writer, value);
+                JsvWriter<T>.WriteRootObject(writer, value);
 			}
 			return sb.ToString();
 		}
@@ -125,7 +125,7 @@ namespace ServiceStack.Text
                 return;
 			}
 
-			JsvWriter<T>.WriteObject(writer, value);
+            JsvWriter<T>.WriteRootObject(writer, value);
 		}
 
 		public static void SerializeToWriter(object value, Type type, TextWriter writer)
@@ -152,7 +152,7 @@ namespace ServiceStack.Text
 			}
 
 			var writer = new StreamWriter(stream, UTF8EncodingWithoutBom);
-			JsvWriter<T>.WriteObject(writer, value);
+            JsvWriter<T>.WriteRootObject(writer, value);
 			writer.Flush();
 		}
 
@@ -191,7 +191,6 @@ namespace ServiceStack.Text
 		/// </summary>
 		/// <returns></returns>
 		public static Dictionary<string, string> ToStringDictionary<T>(this T obj)
-			where T : class
 		{
 			var jsv = SerializeToString(obj);
 			var map = DeserializeFromString<Dictionary<string, string>>(jsv);
@@ -239,9 +238,35 @@ namespace ServiceStack.Text
 
 		public static string SerializeAndFormat<T>(this T instance)
 		{
+		    var fn = instance as Delegate;
+		    if (fn != null)
+                return Dump(fn);
+
 			var dtoStr = SerializeToString(instance);
 			var formatStr = JsvFormatter.Format(dtoStr);
 			return formatStr;
 		}
+
+        public static string Dump(this Delegate fn)
+        {
+            var method = fn.GetType().GetMethod("Invoke");
+            var sb = new StringBuilder();
+            foreach (var param in method.GetParameters())
+            {
+                if (sb.Length > 0)
+                    sb.Append(", ");
+
+                sb.AppendFormat("{0} {1}", param.ParameterType.Name, param.Name);
+            }
+
+#if NETFX_CORE
+            var methodName = fn.GetMethodInfo().Name;
+#else
+            var methodName = fn.Method.Name;
+#endif
+            var info = "{0} {1}({2})".Fmt(method.ReturnType.Name, methodName, sb);
+            return info;
+        }
+
 	}
 }

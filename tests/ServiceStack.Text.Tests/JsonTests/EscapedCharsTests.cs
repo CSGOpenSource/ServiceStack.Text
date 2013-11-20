@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Collections.Generic;
 using NUnit.Framework;
-using ServiceStack.Common.Extensions;
 using ServiceStack.Common.Tests.Models;
 
 namespace ServiceStack.Text.Tests.JsonTests
@@ -223,7 +219,7 @@ namespace ServiceStack.Text.Tests.JsonTests
         [Test]
         public void Can_serialize_unicode_without_escape()
         {
-            var model = new Model { Name = "JříАбвĀašū" };
+            var model = new MyModel { Name = "JříАбвĀašū" };
             var toJson = JsonSerializer.SerializeToString(model);
             Assert.That(toJson, Is.EqualTo("{\"Name\":\"JříАбвĀašū\"}"));
         }
@@ -231,7 +227,7 @@ namespace ServiceStack.Text.Tests.JsonTests
         [Test]
         public void Can_deserialize_unicode_without_escape()
         {
-            var fromJson = JsonSerializer.DeserializeFromString<Model>("{\"Name\":\"JříАбвĀašū\"}");
+            var fromJson = JsonSerializer.DeserializeFromString<MyModel>("{\"Name\":\"JříАбвĀašū\"}");
             Assert.That(fromJson.Name, Is.EqualTo("JříАбвĀašū"));
         }
 
@@ -239,7 +235,7 @@ namespace ServiceStack.Text.Tests.JsonTests
         public void Can_serialize_unicode_with_escape()
         {
             JsConfig.EscapeUnicode = true;
-            var model = new Model { Name = "JříАбвĀašū" };
+            var model = new MyModel { Name = "JříАбвĀašū" };
             var toJson = JsonSerializer.SerializeToString(model);
             Assert.That(toJson, Is.EqualTo("{\"Name\":\"J\\u0159\\u00ED\\u0410\\u0431\\u0432\\u0100a\\u0161\\u016B\"}"));
         }
@@ -248,13 +244,22 @@ namespace ServiceStack.Text.Tests.JsonTests
         public void Can_deserialize_unicode_with_escape()
         {
             JsConfig.EscapeUnicode = true;
-            var fromJson = JsonSerializer.DeserializeFromString<Model>("{\"Name\":\"J\\u0159\\u00ED\\u0410\\u0431\\u0432\\u0100a\\u0161\\u016B\"}");
+            var fromJson = JsonSerializer.DeserializeFromString<MyModel>("{\"Name\":\"J\\u0159\\u00ED\\u0410\\u0431\\u0432\\u0100a\\u0161\\u016B\"}");
             Assert.That(fromJson.Name, Is.EqualTo("JříАбвĀašū"));
         }
 
+        [Test]
+        public void Can_serialize_array_of_control_chars_and_unicode()
+        {
+            // we want to ensure control chars are escaped, but other unicode is fine to be serialized
+            Assert.IsFalse(JsConfig.EscapeUnicode, "for this test, JsConfig.EscapeUnicode must be false");
 
+            var array = new[] { ((char)0x18).ToString(), "Ω" };
+            var json = JsonSerializer.SerializeToString(array);
+            Assert.That(json, Is.EqualTo(@"[""\u0018"",""Ω""]"));
+        }
 
-        public class Model
+        public class MyModel
         {
             public string Name { get; set; }
         }

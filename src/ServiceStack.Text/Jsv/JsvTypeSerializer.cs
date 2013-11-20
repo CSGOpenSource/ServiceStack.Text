@@ -1,14 +1,5 @@
-//
-// https://github.com/ServiceStack/ServiceStack.Text
-// ServiceStack.Text: .NET C# POCO JSON, JSV and CSV Text Serializers.
-//
-// Authors:
-//   Demis Bellot (demis.bellot@gmail.com)
-//
-// Copyright 2012 ServiceStack Ltd.
-//
-// Licensed under the same terms of ServiceStack: new BSD license.
-//
+//Copyright (c) Service Stack LLC. All Rights Reserved.
+//License: https://raw.github.com/ServiceStack/ServiceStack/master/license.txt
 
 using System;
 using System.Globalization;
@@ -74,7 +65,10 @@ namespace ServiceStack.Text.Jsv
 		{
 			if (value != null)
 			{
-				writer.Write(value.ToString().EncodeJsv());
+                if(value is string)
+                    WriteString(writer, value as string);
+                else
+				    writer.Write(value.ToString().EncodeJsv());
 			}
 		}
 
@@ -85,10 +79,21 @@ namespace ServiceStack.Text.Jsv
 
 		public void WriteString(TextWriter writer, string value)
 		{
+            if(JsState.QueryStringMode && !string.IsNullOrEmpty(value) && value.StartsWith(JsWriter.QuoteString) && value.EndsWith(JsWriter.QuoteString))
+                value = String.Concat(JsWriter.QuoteChar, value, JsWriter.QuoteChar);
+		    else if (JsState.QueryStringMode && !string.IsNullOrEmpty(value) && value.Contains(JsWriter.ItemSeperatorString))
+		        value = String.Concat(JsWriter.QuoteChar, value, JsWriter.QuoteChar);
+            
 			writer.Write(value.EncodeJsv());
 		}
 
-		public void WriteDateTime(TextWriter writer, object oDateTime)
+	    public void WriteFormattableObjectString(TextWriter writer, object value)
+	    {
+	        var f = (IFormattable)value;
+	        writer.Write(f.ToString(null,CultureInfo.InvariantCulture).EncodeJsv());
+	    }
+
+	    public void WriteDateTime(TextWriter writer, object oDateTime)
 		{
 			writer.Write(DateTimeSerializer.ToShortestXsdDateTimeString((DateTime)oDateTime));
 		}

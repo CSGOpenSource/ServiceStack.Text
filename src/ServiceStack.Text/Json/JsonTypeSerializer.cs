@@ -1,14 +1,5 @@
-//
-// https://github.com/ServiceStack/ServiceStack.Text
-// ServiceStack.Text: .NET C# POCO JSON, JSV and CSV Text Serializers.
-//
-// Authors:
-//   Demis Bellot (demis.bellot@gmail.com)
-//
-// Copyright 2012 ServiceStack Ltd.
-//
-// Licensed under the same terms of ServiceStack: new BSD license.
-//
+//Copyright (c) Service Stack LLC. All Rights Reserved.
+//License: https://raw.github.com/ServiceStack/ServiceStack/master/license.txt
 
 using System;
 using System.Globalization;
@@ -108,6 +99,12 @@ namespace ServiceStack.Text.Json
             JsonUtils.WriteString(writer, value != null ? value.ToString() : null);
         }
 
+        public void WriteFormattableObjectString(TextWriter writer, object value)
+        {
+            var formattable = value as IFormattable;
+            JsonUtils.WriteString(writer, formattable != null ? formattable.ToString(null, CultureInfo.InvariantCulture) : null);
+        }
+
         public void WriteException(TextWriter writer, object value)
         {
             WriteString(writer, ((Exception)value).Message);
@@ -115,7 +112,9 @@ namespace ServiceStack.Text.Json
 
         public void WriteDateTime(TextWriter writer, object oDateTime)
         {
-            WriteRawString(writer, DateTimeSerializer.ToWcfJsonDate((DateTime)oDateTime));
+            writer.Write(JsWriter.QuoteString);
+            DateTimeSerializer.WriteWcfJsonDate(writer, (DateTime)oDateTime);
+            writer.Write(JsWriter.QuoteString);
         }
 
         public void WriteNullableDateTime(TextWriter writer, object dateTime)
@@ -128,7 +127,9 @@ namespace ServiceStack.Text.Json
 
         public void WriteDateTimeOffset(TextWriter writer, object oDateTimeOffset)
         {
-            WriteRawString(writer, DateTimeSerializer.ToWcfJsonDateTimeOffset((DateTimeOffset)oDateTimeOffset));
+            writer.Write(JsWriter.QuoteString);
+            DateTimeSerializer.WriteWcfJsonDateTimeOffset(writer, (DateTimeOffset)oDateTimeOffset);
+            writer.Write(JsWriter.QuoteString);
         }
 
         public void WriteNullableDateTimeOffset(TextWriter writer, object dateTimeOffset)
@@ -284,10 +285,10 @@ namespace ServiceStack.Text.Json
         public void WriteEnum(TextWriter writer, object enumValue)
         {
             if (enumValue == null) return;
-			if (JsConfig.TreatEnumAsInteger)
-				JsWriter.WriteEnumFlags(writer, enumValue);
-			else
-				WriteRawString(writer, enumValue.ToString());
+            if (GetTypeInfo(enumValue.GetType()).IsNumeric)
+                JsWriter.WriteEnumFlags(writer, enumValue);
+            else
+                WriteRawString(writer, enumValue.ToString());
         }
 
         public void WriteEnumFlags(TextWriter writer, object enumFlagValue)
@@ -550,8 +551,6 @@ namespace ServiceStack.Text.Json
 
             var tokenStartPos = i;
             var valueChar = value[i];
-            var withinQuotes = false;
-            var endsToEat = 1;
 
             switch (valueChar)
             {

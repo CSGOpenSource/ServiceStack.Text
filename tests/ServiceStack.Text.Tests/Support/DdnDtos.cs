@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using ServiceStack.DataAnnotations;
-using ServiceStack.DesignPatterns.Model;
+using ServiceStack.Model;
 
 namespace ServiceStack.Text.Tests.Support
 {
@@ -345,17 +345,6 @@ namespace ServiceStack.Text.Tests.Support
 		}
 	}
 
-	[CollectionDataContract(Namespace = "http://schemas.ddnglobal.com/types/", ItemName = "Id")]
-	public class ArrayOfStringId : List<string>
-	{
-		public ArrayOfStringId() { }
-		public ArrayOfStringId(IEnumerable<string> collection) : base(collection) { }
-
-		//TODO: allow params[] constructor, fails on: o.TranslateTo<ArrayOfStringId>() 
-		public static ArrayOfStringId New(params string[] ids) { return new ArrayOfStringId(ids); }
-		//public ArrayOfStringId(params string[] ids) : base(ids) { }
-	}
-
 	public enum FlowPostType
 	{
 		Content,
@@ -448,17 +437,17 @@ namespace ServiceStack.Text.Tests.Support
 			this.Errors = new List<ResponseError>();
 		}
 
-		[DataMember]
+		[DataMember(EmitDefaultValue = false, IsRequired = false)]
 		public string ErrorCode { get; set; }
 
-		[DataMember]
-		public string Message { get; set; }
+        [DataMember(EmitDefaultValue = false, IsRequired = false)]
+        public string Message { get; set; }
 
-		[DataMember]
-		public string StackTrace { get; set; }
+        [DataMember(EmitDefaultValue = false, IsRequired = false)]
+        public string StackTrace { get; set; }
 
-		[DataMember]
-		public List<ResponseError> Errors { get; set; }
+        [DataMember(EmitDefaultValue = false, IsRequired = false)]
+        public List<ResponseError> Errors { get; set; }
 
 
 		public bool IsSuccess

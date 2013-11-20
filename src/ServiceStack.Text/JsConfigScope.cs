@@ -1,4 +1,7 @@
-﻿using System;
+﻿#if WINDOWS_PHONE && !WP8
+using ServiceStack.Text.WP;
+#endif
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -57,6 +60,7 @@ namespace ServiceStack.Text
 
         public bool? ConvertObjectTypesIntoStringDictionary { get; set; }
         public bool? TryToParsePrimitiveTypeValues { get; set; }
+		public bool? TryToParseNumericType { get; set; }
         public bool? IncludeNullValues { get; set; }
         public bool? TreatEnumAsInteger { get; set; }
         public bool? ExcludeTypeInfo { get; set; }
@@ -72,9 +76,14 @@ namespace ServiceStack.Text
         public bool? EmitLowercaseUnderscoreNames { get; set; }
         public bool? ThrowOnDeserializationError { get; set; }
         public bool? AlwaysUseUtc { get; set; }
+        public bool? AssumeUtc { get; set; }
+        public bool? AppendUtcOffset { get; set; }
         public bool? EscapeUnicode { get; set; }
         public bool? PreferInterfaces { get; set; }
         public bool? IncludePublicFields { get; set; }
+        public int? MaxDepth { get; set; }
         public EmptyCtorFactoryDelegate ModelFactory { get; set; }
+        public string[] ExcludePropertyReferences { get; set; }
+        public HashSet<Type> ExcludeTypes { get; set; }
     }
 }

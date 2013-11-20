@@ -313,15 +313,18 @@ namespace ServiceStack.Text.Common
                 return Serializer.WriteDecimal;
 
             if (type.IsUnderlyingEnum())
-                return type.FirstAttribute<FlagsAttribute>(false) != null
+                return type.FirstAttribute<FlagsAttribute>() != null
                     ? (WriteObjectDelegate)Serializer.WriteEnumFlags
                     : Serializer.WriteEnum;
 
             Type nullableType;
             if ((nullableType = Nullable.GetUnderlyingType(type)) != null && nullableType.IsEnum())
-                return nullableType.FirstAttribute<FlagsAttribute>(false) != null
+                return nullableType.FirstAttribute<FlagsAttribute>() != null
                     ? (WriteObjectDelegate)Serializer.WriteEnumFlags
                     : Serializer.WriteEnum;
+
+            if (type.HasInterface(typeof (IFormattable)))
+                return Serializer.WriteFormattableObjectString;
 
             return Serializer.WriteObjectString;
         }
@@ -400,17 +403,17 @@ namespace ServiceStack.Text.Common
 
                     return (w, x) => writeFn(w, x, keyWriteFn, valueWriteFn);
                 }
-
-                var enumerableInterface = typeof(T).GetTypeWithGenericTypeDefinitionOf(typeof(IEnumerable<>));
-                if (enumerableInterface != null)
-                {
-                    var elementType = enumerableInterface.GenericTypeArguments()[0];
-                    var writeFn = WriteListsOfElements<TSerializer>.GetGenericWriteEnumerable(elementType);
-                    return writeFn;
-                }
             }
 
-            var isDictionary = typeof(T) != typeof(IEnumerable) 
+            var enumerableInterface = typeof(T).GetTypeWithGenericTypeDefinitionOf(typeof(IEnumerable<>));
+            if (enumerableInterface != null)
+            {
+                var elementType = enumerableInterface.GenericTypeArguments()[0];
+                var writeFn = WriteListsOfElements<TSerializer>.GetGenericWriteEnumerable(elementType);
+                return writeFn;
+            }
+
+            var isDictionary = typeof(T) != typeof(IEnumerable) && typeof(T) != typeof(ICollection)
                 && (typeof(T).AssignableFrom(typeof(IDictionary)) || typeof(T).HasInterface(typeof(IDictionary)));
             if (isDictionary)
             {

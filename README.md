@@ -1,10 +1,10 @@
-[Join the new google group](http://groups.google.com/group/servicestack) or
-follow [@demisbellot](http://twitter.com/demisbellot) and [@ServiceStack](http://twitter.com/servicestack)
-for twitter updates.
+[Join the ServiceStack Google+ group](http://groups.google.com/group/servicestack) or
+follow [@ServiceStack](http://twitter.com/servicestack) for project updates.
 
-# The Home of [.NET's fastest JSON](http://www.servicestack.net/mythz_blog/?p=344), [JSV](http://www.servicestack.net/mythz_blog/?p=176) and CSV Text Serializers.
+# [JSON](http://www.servicestack.net/mythz_blog/?p=344), [JSV](http://www.servicestack.net/mythz_blog/?p=176) and CSV Text Serializers used in [servicestack.net](http://www.servicestack.net).
+_Note: the source code is provided as-is - no direct or commercial support is available for ServiceStack_
 
-ServiceStack.Text is an **independent, dependency-free** serialization library that contains all of ServiceStack's text processing functionality, including:
+ServiceStack.Text is an **independent, dependency-free** serialization library that contains ServiceStack's text processing functionality, including:
 
 * [JsonSerializer](http://www.servicestack.net/mythz_blog/?p=344)
 * [TypeSerializer (JSV-Format)](https://github.com/ServiceStack/ServiceStack.Text/wiki/JSV-Format)
@@ -13,13 +13,9 @@ ServiceStack.Text is an **independent, dependency-free** serialization library t
 * StringExtensions - Xml/Json/Csv/Url encoding, BaseConvert, Rot13, Hex escape, etc.
 * Stream, Reflection, List, DateTime, etc extensions and utils
 
-Supports custom builds for: .NET 3.5+, Mono, MonoTouch/MonoDroid, Silverlight 4/5, XBOX, Windows Phone 7
-
-All in a single **144kb** dependency-free ServiceStack.Text.dll
-
 # Simple API
 
-Like most of the interfaces in Service Stack, the API is simple and descriptive. In most cases these are the only methods that you would commonly use:
+Like most of the interfaces in Service Stack, the API is simple. Methods that you would commonly use include:
 
     string TypeSerializer.SerializeToString<T>(T value)
     void TypeSerializer.SerializeToWriter<T>(T value, TextWriter writer)
@@ -73,9 +69,9 @@ String Utils:
     string SafeSubstring()
     string ToUtf8Bytes() / FromUtf8Bytes()
     
-and many more String, Reflection, List, Dictionary, DateTime extensions...    
+more String, Reflection, List, Dictionary, DateTime extensions...    
 
-### Supports Dynamic JSON as well
+### Supports Dynamic JSON
 
 Although usually used to (de)serialize C#/.NET POCO types, it also includes a flexible API allowing you to deserialize any 
 JSON payload without it's concrete type, see these real-world examples:
@@ -89,12 +85,23 @@ Also a thin **.NET 4.0 Dynamic JSON** wrapper around ServiceStack's JSON library
 [ServiceStack.Razor](https://github.com/ServiceStack/ServiceStack/blob/master/src/ServiceStack.Razor/DynamicJson.cs) 
 project. It provides a dynamic, but more succinct API than the above options.
 
-## NuGet ServiceStack.Text
+## Install ServiceStack.Text
 
-![Install-Pacakage ServiceStack.Text](http://servicestack.net/img/nuget-servicestack.text.png)
+    PM> Install-Package ServiceStack.Text
 
+_Commercial support will be available for ServiceStack, contact team@servicestack.net for details_
 
-## ServiceStack.JsonSerializer - the fastest JSON Serializer for .NET
+## Copying
+
+Since September 2013, ServiceStack source code is available under GNU Affero General Public License/FOSS License Exception, see license.txt in the source. Alternative commercial licensing is also available, contact team@servicestack.net for details.
+
+## Contributing
+
+Commits should be made to the **v3-fixes** branch so they can be merged into both **v3** and **master** (v4) release branches. 
+Contributors need to approve the [Contributor License Agreement](https://docs.google.com/forms/d/16Op0fmKaqYtxGL4sg7w_g-cXXyCoWjzppgkuqzOeKyk/viewform) before any code will be reviewed, see the [Contributing wiki](https://github.com/ServiceStack/ServiceStack/wiki/Contributing) for more details. 
+
+## ServiceStack.JsonSerializer
+
 For reasons outlined [in this blog post](http://www.servicestack.net/mythz_blog/?p=344) I decided to re-use *TypeSerializer's* text processing-core to create ServiceStack.JsonSerializer - the fastest JSON Serializer for .NET.
 Based on the [Northwind Benchmarks](http://www.servicestack.net/benchmarks/NorthwindDatabaseRowsSerialization.100000-times.2010-08-17.html) it's *3.6x* faster than .NET's BCL JsonDataContractSerializer and *3x* faster then the previous fastest JSON serializer benchmarked - [JSON.NET](http://json.codeplex.com/).
 
@@ -104,7 +111,7 @@ A comprehensive set of other .NET benchmarks are maintained at [servicestack.net
 As CSV is an important format in many data access and migration scenarios, it became [the latest format included in ServiceStack](https://github.com/ServiceStack/ServiceStack/wiki/ServiceStack-CSV-Format) which allows all your existing web services to take advantage of the new format without config or code-changes. As its built using the same tech that makes the JSON and JSV serializers so fast, we expect it to be the fastest POCO CSV Serializer for .NET.
 
 ## ServiceStack.TypeSerializer and the JSV-format
-Included in this project is `TypeSerializer` - The fastest and most compact text-based serializer for .NET. It's a light-weight compact Text Serializer which can be used to serialize any .NET data type including your own custom POCO's and DataContract's. More info on its JSV Format can be found on the [introductory post](http://www.servicestack.net/mythz_blog/?p=176).
+Included in this project is `TypeSerializer` - A fast and compact text-based serializer for .NET. It's a light-weight compact Text Serializer which can be used to serialize .NET data types inc custom POCO's and DataContract's. More info on its JSV Format can be found on the [introductory post](http://www.servicestack.net/mythz_blog/?p=176).
 
 ## T.Dump() Extension method
 Another useful library to have in your .NET toolbox is the [T.Dump() Extension Method](http://www.servicestack.net/mythz_blog/?p=202). Under the hood it uses a *Pretty Print* Output of the JSV Format to recursively dump the contents of any .NET object. Example usage and output: 
@@ -138,13 +145,6 @@ Another useful library to have in your .NET toolbox is the [T.Dump() Extension M
 			c: 3
 		}
 	}
-
-
-# Download
-### ServiceStack.Text is included with [ServiceStack.zip](https://github.com/ServiceStack/ServiceStack/downloads) 
-### or available to download separately in a standalone [ServiceStack.Text.zip](https://github.com/ServiceStack/ServiceStack.Text/downloads). 
-
-<hr />
 
 # ServiceStack's JsonSerializer
 

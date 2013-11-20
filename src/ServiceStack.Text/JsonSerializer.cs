@@ -6,9 +6,9 @@
 // Authors:
 //   Demis Bellot (demis.bellot@gmail.com)
 //
-// Copyright 2012 ServiceStack Ltd.
+// Copyright 2012 Service Stack LLC. All Rights Reserved.
 //
-// Licensed under the same terms of ServiceStack: new BSD license.
+// Licensed under the same terms of ServiceStack.
 //
 
 using System;
@@ -16,7 +16,6 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Reflection;
 using ServiceStack.Text.Common;
 using ServiceStack.Text.Json;
 
@@ -31,9 +30,9 @@ namespace ServiceStack.Text
 
 		public static T DeserializeFromString<T>(string value)
 		{
-			if (string.IsNullOrEmpty(value)) return default(T);
-			return (T)JsonReader<T>.Parse(value);
-		}
+            if (string.IsNullOrEmpty(value)) return default(T);
+            return (T)JsonReader<T>.Parse(value);
+        }
 
 		public static T DeserializeFromReader<T>(TextReader reader)
 		{
@@ -42,10 +41,10 @@ namespace ServiceStack.Text
 
 		public static object DeserializeFromString(string value, Type type)
 		{
-			return string.IsNullOrEmpty(value)
-					? null
-					: JsonReader.GetParseFn(type)(value);
-		}
+            return string.IsNullOrEmpty(value)
+                ? null
+                : JsonReader.GetParseFn(type)(value);
+        }
 
 		public static object DeserializeFromReader(TextReader reader, Type type)
 		{
@@ -54,7 +53,7 @@ namespace ServiceStack.Text
 
 		public static string SerializeToString<T>(T value)
 		{
-			if (value == null) return null;
+            if (value == null || value is Delegate) return null;
             if (typeof(T) == typeof(object) || typeof(T).IsAbstract() || typeof(T).IsInterface())
             {
                 if (typeof(T).IsAbstract() || typeof(T).IsInterface()) JsState.IsWritingDynamic = true;
@@ -63,20 +62,20 @@ namespace ServiceStack.Text
                 return result;
             }
 
-			var sb = new StringBuilder();
-			using (var writer = new StringWriter(sb, CultureInfo.InvariantCulture))
-			{
-				if (typeof(T) == typeof(string))
-				{
-					JsonUtils.WriteString(writer, value as string);
-				}
-				else
-				{
-					JsonWriter<T>.WriteObject(writer, value);
-				}
-			}
-			return sb.ToString();
-		}
+            var sb = new StringBuilder();
+            using (var writer = new StringWriter(sb, CultureInfo.InvariantCulture))
+            {
+                if (typeof(T) == typeof(string))
+                {
+                    JsonUtils.WriteString(writer, value as string);
+                }
+                else
+                {
+                    JsonWriter<T>.WriteRootObject(writer, value);
+                }
+            }
+            return sb.ToString();
+        }
 
 		public static string SerializeToString(object value, Type type)
 		{
@@ -113,7 +112,7 @@ namespace ServiceStack.Text
                 return;
             }
 
-			JsonWriter<T>.WriteObject(writer, value);
+			JsonWriter<T>.WriteRootObject(writer, value);
 		}
 
 		public static void SerializeToWriter(object value, Type type, TextWriter writer)
@@ -140,7 +139,7 @@ namespace ServiceStack.Text
             }
 
 			var writer = new StreamWriter(stream, UTF8EncodingWithoutBom);
-			JsonWriter<T>.WriteObject(writer, value);
+			JsonWriter<T>.WriteRootObject(writer, value);
 			writer.Flush();
 		}
 

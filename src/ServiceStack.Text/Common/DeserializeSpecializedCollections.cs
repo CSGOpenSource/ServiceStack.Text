@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+#if !NETFX_CORE
 using System.Collections.Specialized;
+#endif
 using System.Linq;
 using System.Reflection;
 
@@ -52,7 +54,7 @@ namespace ServiceStack.Text.Common
                 return ParseStringCollection<TSerializer>;
             }
 #endif
-            if (typeof(T) == typeof(IEnumerable))
+            if (typeof (T) == typeof (IEnumerable) || typeof(T) == typeof(ICollection))
             {
                 return GetEnumerableParseFn();
             }
@@ -139,6 +141,7 @@ namespace ServiceStack.Text.Common
         public static ParseStringDelegate GetGenericEnumerableParseFn()
         {
             var enumerableInterface = typeof(T).GetTypeWithGenericInterfaceOf(typeof(IEnumerable<>));
+            if (enumerableInterface == null) return null; 
             var elementType = enumerableInterface.GenericTypeArguments()[0];
             var genericType = typeof(SpecializedEnumerableElements<,>).MakeGenericType(typeof(T), elementType);
             var fi = genericType.GetPublicStaticField("ConvertFn");
