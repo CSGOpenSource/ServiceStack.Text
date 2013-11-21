@@ -67,6 +67,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>ServiceStack.Text.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Signed|AnyCPU'">
     <OutputPath>bin\Signed\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
